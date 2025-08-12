@@ -320,14 +320,14 @@ body {
 }
 
 .create-form .card {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--content-bg);
     border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
 }
 
 .form-control,
 .form-select {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--content-bg);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: slate blue gray;
     backdrop-filter: blur(10px);
@@ -335,7 +335,7 @@ body {
 
 .form-control:focus,
 .form-select:focus {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--content-bg);
     border-color: var(--secondary-purple);
     color: slate blue gray;
     box-shadow: 0 0 10px rgba(156, 39, 176, 0.3);
