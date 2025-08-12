@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mindora Threads – Forum</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #f7f6fd;
+      margin: 0;
+      padding: 0;
+      color: #2d2d2d;
+    }
+    header {
+      background-color: #6c5ce7;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .container {
+      max-width: 800px;
+      margin: 30px auto;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    input, textarea, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-family: 'Outfit', sans-serif;
+    }
+    button {
+      background-color: #6c5ce7;
+      color: white;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button:hover {
+      background-color: #5a4fcf;
+    }
+    .post {
+      background: #f1effd;
+      border-left: 4px solid #6c5ce7;
+      padding: 12px 16px;
+      margin-top: 16px;
+      border-radius: 6px;
+      scroll-margin-top: 100px;
+    }
+    .post .meta {
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .comment {
+      margin-left: 20px;
+      margin-top: 8px;
+      padding: 8px;
+      background: #ede9ff;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <header>Mindora Threads – Forum</header>
+  <div class="container">
+    <h2>Start a New Thread</h2>
+    <form id="postForm">
+      <input type="text" id="username" placeholder="Your name" required />
+      <select id="category" required>
+        <option value="">Select category</option>
+        <option value="Art">Art</option>
+        <option value="Science">Science</option>
+        <option value="Literature">Literature</option>
+        <option value="Audio">Audio</option>
+      </select>
+      <textarea id="content" placeholder="What would you like to say?" required></textarea>
+      <button type="submit">Post</button>
+    </form>
+
+    <h2>All Threads</h2>
+    <div id="threadsContainer"></div>
+
+    <h2>Quick Poll</h2>
+    <form id="pollForm">
+      <input type="text" id="pollQuestion" placeholder="Ask a question..." required />
+      <input type="text" id="pollOption1" placeholder="Option 1" required />
+      <input type="text" id="pollOption2" placeholder="Option 2" required />
+      <button type="submit">Post Poll</button>
+    </form>
+    <div id="pollsContainer" style="margin-top:20px;"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      onSnapshot,
+      getDoc,
+      doc,
+      updateDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const postForm = document.getElementById("postForm");
+    const threadsContainer = document.getElementById("threadsContainer");
+
+    postForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("username").value;
+      const content = document.getElementById("content").value;
+      const category = document.getElementById("category").value;
+      await addDoc(collection(db, "threads"), {
+        username,
+        content,
+        category,
+        comments: [],
+        createdAt: serverTimestamp()
+      });
+      postForm.reset();
+
+});
+
+    onSnapshot(collection(db, "threads"), (snapshot) => {
+      threadsContainer.innerHTML = "";
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const div = document.createElement("div");
+        div.id = "thread-" + docSnap.id;
+        div.className = "post";
+        div.innerHTML = `
+          <div class="meta"><b>${data.username}</b> · <i>${data.category}</i></div>
+          <div class="body">${data.content}</div>
+          <button onclick="copyLink('thread-${docSnap.id}')">Share</button>
+          <form onsubmit="return commentOnThread('${docSnap.id}', this)">
+            <input type="text" name="comment" placeholder="Write a comment..." required />
+            <button type="submit">Reply</button>
+          </form>
+          <div>${(data.comments || []).map(c => '<div class="comment"><b>' + c.name + ':</b> ' + c.text + '</div>').join('')}</div>
+        `;
+        threadsContainer.appendChild(div);
+      });
+
+      // scroll to thread if URL has #id
+      const hash = window.location.hash;
+      if (hash) {
+        const el = document.querySelector(hash);
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }
+    });
+
+    window.commentOnThread = async (id, form) => {
+      const text = form.comment.value;
+      const name = prompt("Your name:");
+      const postRef = doc(db, "threads", id);
+      const snap = await getDoc(postRef);
+      const data = snap.data();
+      const comments = data.comments || [];
+      comments.push({ name, text });
+      await updateDoc(postRef, { comments });
+      form.reset();
+      return false;
+    };
+
+    window.copyLink = (id) => {
+      const url = `${window.location.href.split('#')[0]}#${id}`;
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Link copied to clipboard!");
+      });
+    };
+
+    // Poll logic
+    const pollForm = document.getElementById("pollForm");
+    const pollsContainer = document.getElementById("pollsContainer");
+
+    pollForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const question = document.getElementById("pollQuestion").value;
+      const option1 = document.getElementById("pollOption1").value;
+      const option2 = document.getElementById("pollOption2").value;
+      await addDoc(collection(db, "polls"), {
+        question,
+        options: [option1, option2],
+        votes: [0, 0],
+        createdAt: serverTimestamp()
+      });
+      pollForm.reset();
+    });
+
+    onSnapshot(collection(db, "polls"), (snapshot) => {
+      pollsContainer.innerHTML = "";
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "post";
+        div.innerHTML = `
+          <div><strong>${data.question}</strong></div>
+          ${data.options.map((opt, i) => '<button onclick="votePoll(\\'' + docSnap.id + '\\', ' + i + ')">' + opt + ' (' + data.votes[i] + ')</button>').join("<br>")}
+        `;
+        pollsContainer.appendChild(div);
+      });
+    });
+
+    window.votePoll = async (id, index) => {
+      const ref = doc(db, "polls", id);
+      const snap = await getDoc(ref);
+      const data = snap.data();
+      const votes = data.votes;
+      votes[index]++;
+      await updateDoc(ref, { votes });
+    };
+  </script>
+</body>
+</html>
