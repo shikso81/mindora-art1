@@ -329,7 +329,7 @@ body {
 .form-select {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
+    color: slate blue gray;
     backdrop-filter: blur(10px);
 }
 
@@ -337,7 +337,7 @@ body {
 .form-select:focus {
     background: rgba(255, 255, 255, 0.15);
     border-color: var(--secondary-purple);
-    color: white;
+    color: slate blue gray;
     box-shadow: 0 0 10px rgba(156, 39, 176, 0.3);
 }
 
@@ -346,7 +346,7 @@ body {
 }
 
 .form-label {
-    color: white;
+    color: slate blue gray;
     font-weight: 600;
 }
 
